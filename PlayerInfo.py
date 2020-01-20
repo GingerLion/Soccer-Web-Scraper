@@ -29,10 +29,10 @@ class PlayerInfo:
         self.clubs = []
         self.players_url = "https://footballapi.pulselive.com/football/players?pageSize=30&compSeasons=274&altIds=true&page=0&type=player&id=-1&compSeasonId=274"
         self.clubs_url = "https://www.premierleague.com/clubs"
-        self.df = pd.DataFrame()
         self.get_clubs()
         self.get_player_info()
         self.convert_to_df()
+        
     def get_clubs(self):
         response = requests.get(self.clubs_url)
         soup = BeautifulSoup(response.content,'html.parser')
@@ -97,6 +97,3 @@ class PlayerInfo:
         #clean some data
         self.df.replace('N/A',np.NaN,inplace=True)
         self.df['shirtNum'].replace(0,np.NaN,inplace=True)
-        
-pl = PlayerInfo()
-print(pl.df)
