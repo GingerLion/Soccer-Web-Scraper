@@ -7,18 +7,7 @@ import numpy as np
 class GeneralStats:
     
     def __init__(self,league):
-        self.pi = PlayerInfo() # not permanent one class will be composed of all types of stats
         self.league = league
-        self.general_info = {
-            "goals": [],
-            "assists": [],
-            "apps": [],
-            "mins": [],
-            "yellows": [],
-            "reds": [],
-            "sub_on": [],
-            "sub_off": []
-        }
         self.general_urls = {
             "goals" : "https://footballapi.pulselive.com/football/stats/ranked/players/goals?page=0&pageSize=20&compSeasons=274&comps=1&compCodeForActivePlayer=" + self.league + "&altIds=true",
             "assists" : "https://footballapi.pulselive.com/football/stats/ranked/players/goal_assist?page=0&pageSize=20&compSeasons=274&comps=1&compCodeForActivePlayer="+self.league+"&altIds=true",
@@ -29,71 +18,58 @@ class GeneralStats:
             "sub_on" : "https://footballapi.pulselive.com/football/stats/ranked/players/total_sub_on?page=0&pageSize=20&compSeasons=274&comps=1&compCodeForActivePlayer="+self.league+"&altIds=true",
             "sub_off" : "https://footballapi.pulselive.com/football/stats/ranked/players/total_sub_off?page=0&pageSize=20&compSeasons=274&comps=1&compCodeForActivePlayer="+self.league+"&altIds=true"
         }
-        self.parse_stats(self.general_info.keys())
-        self.create_gs_df()
+        #self.general_info = self.parse_stats(list(self.general_urls.keys()),self.get_(self.general_urls))
+        #self.create_gs_df(self.general_urls.keys())
         
     def list_content_empty(self,li):
         """check if the end of json data is reached"""
-        if not li['stats']['content']:
+        if not li:
             return True
         else:
             return False
-    
-    def get_(self,stat):
-        i = 0
-        response = dict()
-        ls_responses = []
-        while True:
-            if i > 0: # alter GET message to change pages
-                self.general_urls[stat] = self.general_urls[stat].replace(f'page={i-1}',f'page={i}')
-                response = requests.get(self.general_urls[stat]).json()
-            else:
-                response = requests.get(self.general_urls[stat]).json()
-            # if no more content
-            if self.list_content_empty(response):
-                break
-            #print(response)
-            ls_responses.append(response)
-            i = i+1
+    @staticmethod
+    def get_(url_dict):
+        # ls_responses will be a dict of lists which contain dictionaries
+        ls_responses = {key:[] for key in url_dict.keys()}
+        # for each stat run through each page
+        for s in list(url_dict.keys()):
+            i = 0
             response = dict()
+            while True:
+                if i > 0: # alter GET message to change pages
+                    url_dict[s] = url_dict[s].replace(f'page={i-1}',f'page={i}')
+                    response = requests.get(url_dict[s]).json()
+                else:
+                    response = requests.get(url_dict[s]).json()
+                # if no more content
+                if not response['stats']['content']:
+                    break
+                #print(response)
+                ls_responses[s].append(response)
+                i = i+1
+                response = dict()
         return ls_responses
     
-    def parse_stats(self,stat):
-            """
-            Input: list of stat field names
-            Process: parses json data from the api and stores it in
-            the corresponding instance variables
-            Output: None
-            """
-            for s in stat:
-                pages = self.get_(s)
-                for page in pages:
-                    for player in range(len(page['stats']['content'])):
-                        self.general_info[s].append(tuple((int(page['stats']['content'][player]['owner']['playerId']),int(page['stats']['content'][player]['value']))))
-                       
+    @staticmethod
+    def parse_stats(stat,pages):
+        """
+        Input: list of stat field names
+        Process: parses json data from the api and stores it in
+        the corresponding instance variables
+        Return: dictionary of stats data
+        """
+        data_dict = {key: [] for key in stat}
+        for s in stat:
+            for page in pages[s]:
+                for player in range(len(page['stats']['content'])):
+                    data_dict[s].append(tuple((int(page['stats']['content'][player]['owner']['playerId']),int(page['stats']['content'][player]['value']))))
+        return data_dict
     
-    def create_gs_df(self):
-        list_of_ids = {
-                "goals": [],
-                "assists": [],
-                "apps": [],
-                "mins": [],
-                "yellows": [],
-                "reds": [],
-                "sub_on": [],
-                "sub_off": []
-                }
-        list_of_vals = {
-                "goals": [],
-                "assists": [],
-                "apps": [],
-                "mins": [],
-                "yellows": [],
-                "reds": [],
-                "sub_on": [],
-                "sub_off": []
-                }
-        # collect ids & values from instance dictionary "general_info"
+    def create_gs_df(self, stat):
+        list_of_ids = {key:[] for key in stat}
+        list_of_vals = {key: [] for key in stat}
+        
+        # collect ids & values from instance dictionary 
         for s in list_of_ids.keys():
             for val in self.general_info[s]:
                 list_of_ids[s].append(val[0])
@@ -120,4 +96,8 @@ class GeneralStats:
         self.gs.fillna(0,inplace=True)
                 
 g = GeneralStats('EN_PR')
-print(g.gs)
+g.general_info = g.parse_stats(list(g.general_urls.keys()),g.get_(g.general_urls))
+g.create_gs_df(list(g.general_urls.keys()))
+g.gs
+
+        
