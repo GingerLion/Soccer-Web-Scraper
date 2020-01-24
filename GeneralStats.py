@@ -3,11 +3,13 @@ from PlayerInfo import PlayerInfo
 from copy import deepcopy
 import pandas as pd
 import numpy as np
+from bs4 import BeautifulSoup
 
 class GeneralStats:
     
     def __init__(self,league):
         self.league = league
+        self.role = "General"
         self.general_urls = {
             "goals" : "https://footballapi.pulselive.com/football/stats/ranked/players/goals?page=0&pageSize=20&compSeasons=274&comps=1&compCodeForActivePlayer=" + self.league + "&altIds=true",
             "assists" : "https://footballapi.pulselive.com/football/stats/ranked/players/goal_assist?page=0&pageSize=20&compSeasons=274&comps=1&compCodeForActivePlayer="+self.league+"&altIds=true",
@@ -18,8 +20,8 @@ class GeneralStats:
             "sub_on" : "https://footballapi.pulselive.com/football/stats/ranked/players/total_sub_on?page=0&pageSize=20&compSeasons=274&comps=1&compCodeForActivePlayer="+self.league+"&altIds=true",
             "sub_off" : "https://footballapi.pulselive.com/football/stats/ranked/players/total_sub_off?page=0&pageSize=20&compSeasons=274&comps=1&compCodeForActivePlayer="+self.league+"&altIds=true"
         }
-        #self.general_info = self.parse_stats(list(self.general_urls.keys()),self.get_(self.general_urls))
-        #self.create_gs_df(self.general_urls.keys())
+        self.general_info = self.parse_stats(list(self.general_urls.keys()),self.get_(self.general_urls))
+        self.df = self.create_df(self.general_info,self.getStatsNames)
         
     def list_content_empty(self,li):
         """check if the end of json data is reached"""
@@ -27,6 +29,7 @@ class GeneralStats:
             return True
         else:
             return False
+    
     @staticmethod
     def get_(url_dict):
         # ls_responses will be a dict of lists which contain dictionaries
@@ -65,39 +68,46 @@ class GeneralStats:
                     data_dict[s].append(tuple((int(page['stats']['content'][player]['owner']['playerId']),int(page['stats']['content'][player]['value']))))
         return data_dict
     
-    def create_gs_df(self, stat):
-        list_of_ids = {key:[] for key in stat}
-        list_of_vals = {key: [] for key in stat}
+    def create_df(self,info,f):
+        list_of_ids = {key:[] for key in info.keys()}
+        list_of_vals = {key:[] for key in info.keys()}
         
         # collect ids & values from instance dictionary 
         for s in list_of_ids.keys():
-            for val in self.general_info[s]:
+            for val in info[s]:
                 list_of_ids[s].append(val[0])
                 list_of_vals[s].append(val[1])
             
         # create dataframes
-        goals_df = pd.DataFrame(index=list_of_ids['goals'],columns=['Goals'])
-        assists_df = pd.DataFrame(index=list_of_ids['assists'],columns=['Assists'])
-        apps_df = pd.DataFrame(index=list_of_ids['apps'],columns=['Appearances'])
-        mins_df = pd.DataFrame(index=list_of_ids['mins'],columns=['Minutes Played'])
-        yellows_df = pd.DataFrame(index=list_of_ids['yellows'],columns=['Yellow Cards'])
-        reds_df = pd.DataFrame(index=list_of_ids['reds'],columns=['Red Cards'])
-        sub_on_df = pd.DataFrame(index=list_of_ids['sub_on'],columns=['Subbed On'])
-        sub_off_df = pd.DataFrame(index=list_of_ids['sub_off'],columns=['Subbed Off'])
+        stat_names = f(self.role)
+        dfs = []
+        for key,colName in zip(list(list_of_ids.keys()),stat_names):
+            dfs.append(pd.DataFrame(index=list_of_ids[key],columns=[colName]))
         
         # fill dataframes
-        dfs = [goals_df,assists_df,apps_df,mins_df,yellows_df,reds_df,sub_on_df,sub_off_df]
         for df,keys in zip(dfs,list_of_vals.keys()):
             df[df.columns[0]] = list(map(int,list_of_vals[keys]))
             
         # join dataframes
-        self.gs = dfs[0].join(dfs[1:],how='outer')
+        data = dfs[0].join(dfs[1:],how='outer')
         # replace NaNs
-        self.gs.fillna(0,inplace=True)
-                
-g = GeneralStats('EN_PR')
-g.general_info = g.parse_stats(list(g.general_urls.keys()),g.get_(g.general_urls))
-g.create_gs_df(list(g.general_urls.keys()))
-g.gs
-
+        data.fillna(0,inplace=True)
         
+        return data
+    
+    @staticmethod    
+    def getStatsNames(role):
+        url = "https://www.premierleague.com/stats/top/players/goals?se=274"
+        r = requests.get(url)
+        bs = BeautifulSoup(r.content,'html.parser')
+        navs = bs.find_all("nav",{"class":"moreStatsMenu"})
+        nav_idx = None
+        statsNames = []
+        for i,nav in zip(range(len(navs)),navs):
+            if nav.find("h3",{"class":"subHeader"}).text == role:
+                nav_idx = i
+
+        stats = navs[nav_idx].find_all("a")
+        for s in stats:
+            statsNames.append(s.text.strip())
+        return statsNames
