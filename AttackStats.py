@@ -1,10 +1,12 @@
+import requests
 import numpy as np
 import pandas as pd
 from GeneralStats import GeneralStats
+from bs4 import BeautifulSoup
 
 class AttackStats(GeneralStats):
     def __init__(self,league):
-        super().__init__(league)
+        self.role = "Attack"
         self.league = league
         self.attack_urls = {
             "shots": "https://footballapi.pulselive.com/football/stats/ranked/players/total_scoring_att?page=0&pageSize=20&compSeasons=274&comps=1&compCodeForActivePlayer="+self.league+"&altIds=true",
@@ -22,7 +24,7 @@ class AttackStats(GeneralStats):
         }
         self.attack_info = {key:[] for key in self.attack_urls.keys()}
         self.attack_info = super().parse_stats(self.attack_urls.keys(),super().get_(self.attack_urls))
-        self.create_df(self.attack_urls.keys())
+        self.df = super().create_df(self.attack_info,super().getStatsNames)
         
     def create_df(self, stat):
         list_of_ids = {key:[] for key in stat}
@@ -59,4 +61,4 @@ class AttackStats(GeneralStats):
         self.att_df.fillna(0,inplace=True)
         
 a = AttackStats('EN_PR')
-print(a.att_df)
+print(a.df)
