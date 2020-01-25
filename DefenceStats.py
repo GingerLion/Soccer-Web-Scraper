@@ -28,5 +28,5 @@ class DefenceStats(GeneralStats):
             
             
             
-d = DefenceStats('EN_PR')
-d.df
+#d = DefenceStats('EN_PR')
+#d.df
