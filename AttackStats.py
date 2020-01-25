@@ -26,39 +26,3 @@ class AttackStats(GeneralStats):
         self.attack_info = super().parse_stats(self.attack_urls.keys(),super().get_(self.attack_urls))
         self.df = super().create_df(self.attack_info,super().getStatsNames)
         
-    def create_df(self, stat):
-        list_of_ids = {key:[] for key in stat}
-        list_of_vals = {key:[] for key in stat}
-        
-        # collect ids & values from instance dictionary 
-        for s in list_of_ids.keys():
-            for val in self.attack_info[s]:
-                list_of_ids[s].append(val[0])
-                list_of_vals[s].append(val[1])
-            
-        # create dataframes
-        shots_df = pd.DataFrame(index=list_of_ids['shots'],columns=['Shots'])
-        sot_df = pd.DataFrame(index=list_of_ids['shots_on_target'],columns=['Shots On Target'])
-        hw_df = pd.DataFrame(index=list_of_ids['hit_woodwork'],columns=['Hit Woodwork'])
-        hg_df = pd.DataFrame(index=list_of_ids['header_goals'],columns=['Header Goals'])
-        pg_df = pd.DataFrame(index=list_of_ids['penalty_goals'],columns=['Penalty Goals'])
-        fkg_df = pd.DataFrame(index=list_of_ids['fk_goals'],columns=['Free Kick Goals'])
-        offsides_df = pd.DataFrame(index=list_of_ids['offsides'],columns=['Offsides'])
-        touches_df = pd.DataFrame(index=list_of_ids['touches'],columns=['Touches'])
-        passes_df = pd.DataFrame(index=list_of_ids['passes'],columns=['Passes'])
-        tb_df = pd.DataFrame(index=list_of_ids['through_balls'],columns=['Through Balls'])
-        crosses_df = pd.DataFrame(index=list_of_ids['crosses'],columns=['Crosses'])
-        corners_df = pd.DataFrame(index=list_of_ids['corners'],columns=['Corners'])
-        
-        # fill dataframes
-        dfs = [shots_df,sot_df,hw_df,hg_df,pg_df,fkg_df,offsides_df,touches_df,passes_df,tb_df,crosses_df,corners_df]
-        for df,keys in zip(dfs,list_of_vals.keys()):
-            df[df.columns[0]] = list(map(int,list_of_vals[keys]))
-            
-        # join dataframes
-        self.att_df = dfs[0].join(dfs[1:],how='outer')
-        # replace NaNs
-        self.att_df.fillna(0,inplace=True)
-        
-a = AttackStats('EN_PR')
-print(a.df)
