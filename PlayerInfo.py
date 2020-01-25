@@ -16,6 +16,7 @@ class PlayerInfo:
            they want to grab
     """
     def __init__(self):
+        # dictionary of lists to store data for all players
         self.player_info = {
             'id' : [],
             'name' : [],
@@ -26,11 +27,19 @@ class PlayerInfo:
             'club' : [],
             'dob' : []
         }
+        # list for relevant club names
         self.clubs = []
+        # link for football api
         self.players_url = "https://footballapi.pulselive.com/football/players?pageSize=30&compSeasons=274&altIds=true&page=0&type=player&id=-1&compSeasonId=274"
+        # link for current premier league clubs
         self.clubs_url = "https://www.premierleague.com/clubs"
+        # initialize pandas DataFrame object
+        self.df = pd.DataFrame()
+        # web-scrape clubs
         self.get_clubs()
+        # fetch player info based on clubs
         self.get_player_info()
+        # convert the data from dict to dataframe and clean
         self.convert_to_df()
         
     def get_clubs(self):
@@ -38,8 +47,9 @@ class PlayerInfo:
         soup = BeautifulSoup(response.content,'html.parser')
         for clubName in soup.find_all("h4",{"class":"clubName"}):
             self.clubs.append(clubName.text)
-        
+            
     def list_content_empty(self,li):
+        """check if the end of json data is reached"""
         if not li['content']:
             return True
         else:
@@ -50,13 +60,13 @@ class PlayerInfo:
         response = dict()
         
         while True:
-            if i > 0:
+            if i > 0: # alter GET message to change pages
                 self.players_url = self.players_url.replace(f'page={i-1}',f'page={i}')
                 response = requests.get(self.players_url).json()
             else:
                 response = requests.get(self.players_url).json()
             
-            
+            # if no more content
             if self.list_content_empty(response):
                 break
             
@@ -73,9 +83,14 @@ class PlayerInfo:
                                 self.player_info['shirtNum'].append(int(p['info']['shirtNum']))
                             except:
                                 self.player_info['shirtNum'].append(0)
-                            
-                            self.player_info['club'].append(p['currentTeam']['name'])
-                            self.player_info['country'].append(p['birth']['country']['country'])
+                            try:
+                                self.player_info['club'].append(p['currentTeam']['name'])
+                            except:
+                                self.player_info['club'].append('N/A')
+                            try:
+                                self.player_info['country'].append(p['birth']['country']['country'])
+                            except:
+                                self.player_info['country'].append('N/A')
                             try:
                                 self.player_info['dob'].append(str(parse(p['birth']['date']['label']).date()))
                             except:
@@ -84,7 +99,6 @@ class PlayerInfo:
                         pass
             except:
                 pass
-            
             
             i = i + 1
             response = dict()
@@ -97,3 +111,5 @@ class PlayerInfo:
         #clean some data
         self.df.replace('N/A',np.NaN,inplace=True)
         self.df['shirtNum'].replace(0,np.NaN,inplace=True)
+        self.df.rename(columns={ "club":"Club","country":"Country","dob":"Dob","name":"Name","position":"Position","role":"Role","shirtNum":"Shirt Number"},inplace=True)
+        
