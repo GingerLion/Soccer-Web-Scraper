@@ -1,7 +1,7 @@
 import requests
 import numpy as np
 import pandas as pd
-from GeneralStats import GeneralStats
+from generalstats import GeneralStats
 from bs4 import BeautifulSoup
 
 class AttackStats(GeneralStats):
@@ -25,4 +25,3 @@ class AttackStats(GeneralStats):
         self.attack_info = {key:[] for key in self.attack_urls.keys()}
         self.attack_info = super().parse_stats(self.attack_urls.keys(),super().get_(self.attack_urls))
         self.df = super().create_df(self.attack_info,super().getStatsNames)
-        

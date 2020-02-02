@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import numpy as np
 import requests
-from GeneralStats import GeneralStats
+from generalstats import GeneralStats
 
 class GoalkeeperStats(GeneralStats):
     def __init__(self,league):

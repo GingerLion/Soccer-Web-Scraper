@@ -1,4 +1,4 @@
-from GeneralStats import GeneralStats 
+from generalstats import GeneralStats 
 import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -24,9 +24,3 @@ class DefenceStats(GeneralStats):
         self.defence_info = {key:[] for key in self.defence_urls.keys()}
         self.defence_info = super().parse_stats(self.defence_urls.keys(),super().get_(self.defence_urls))
         self.df = super().create_df(self.defence_info,super().getStatsNames)
-            
-            
-            
-            
-#d = DefenceStats('EN_PR')
-#d.df
