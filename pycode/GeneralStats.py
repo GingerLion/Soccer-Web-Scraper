@@ -65,7 +65,7 @@ class GeneralStats:
         for s in stat:
             for page in pages[s]:
                 for player in range(len(page['stats']['content'])):
-                    data_dict[s].append(tuple((int(page['stats']['content'][player]['owner']['playerId']),int(page['stats']['content'][player]['value']))))
+                    data_dict[s].append(tuple((int(page['stats']['content'][player]['owner']['id']),int(page['stats']['content'][player]['value']))))
         return data_dict
     
     def create_df(self,info,f):
